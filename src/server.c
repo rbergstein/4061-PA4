@@ -19,7 +19,7 @@ void *clientHandler(void *socket) {
 }
 
 int main(int argc, char* argv[]) {
-    int listen_fd, codd_fd;
+    int listen_fd, conn_fd;
     // Creating socket file descriptor
     listen_fd = socket(AF_INET, SOCK_STREAM, 0);
     if (listen_fd == -1) {

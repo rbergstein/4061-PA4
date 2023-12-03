@@ -5,16 +5,46 @@
 
 int send_file(int socket, const char *filename) {
     // Open the file
+    FILE *f = fopen(filename, "r");
+    if (f == NULL) {
+        perror("can't open file");
+        return -1;
+    }
+
+    fseek(f, 0, SEEK_END); // set file pointer to end of file
+    int file_size = ftell(f); // get size of file
+    fseek(f, 0, SEEK_SET); // set file pointer back to start
 
     // Set up the request packet for the server and send it
+    packet_t packet;
+    // packet.operation = ;         fill this here??
+    // packet.flags = ;             not sure.
+    packet.size = file_size;
 
-    // Send the file data
+    int ret = send(socket, &packet, sizeof(packet), 0);
+    if (ret == -1) {
+        perror("packet send error");
+    }
     return 0;
+    // Send the file data
+    char pack_buf[BUFFER_SIZE];
+    size_t bytes_read;
+
+    while ((bytes_read = fread(pack_buf, 1, sizeof(pack_buf), f)) > 0) {
+        if (send(socket, pack_buf, bytes_read, 0) == -1) {
+            perror("file data send error");
+            fclose(f);
+            return -1;
+        }
+    }
+
+    fclose(f);
+    
 }
 
 int receive_file(int socket, const char *filename) {
     // Open the file
-
+    
     // Receive response packet
 
     // Receive the file data
@@ -24,7 +54,7 @@ int receive_file(int socket, const char *filename) {
 }
 
 int main(int argc, char* argv[]) {
-    if(argc != 3){
+    if(argc != 4){
         fprintf(stderr, "Usage: ./client File_Path_to_images File_Path_to_output_dir Rotation_angle. \n");
         return 1;
     }
@@ -56,7 +86,7 @@ int main(int argc, char* argv[]) {
         exit(EXIT_FAILURE);
     }
 
-    request_t reqlist[BUFFER_SIZE];
+    request_t reqlist[MAX_QUEUE_LEN];
     int index_counter = 0;
 
     while ((entry = readdir(dir)) != NULL) { 
