@@ -1,6 +1,6 @@
 #include "client.h"
 
-#define PORT 8080
+#define PORT 5872
 #define BUFFER_SIZE 1024 
 
 int send_file(int socket, const char *filename) {
@@ -28,6 +28,8 @@ int main(int argc, char* argv[]) {
         fprintf(stderr, "Usage: ./client File_Path_to_images File_Path_to_output_dir Rotation_angle. \n");
         return 1;
     }
+    char* path_to_images = argv[1];
+    char* output_dir = argv[2];
     int rotation_angle = atoi(argv[3]);
     
     // Set up socket
@@ -46,7 +48,7 @@ int main(int argc, char* argv[]) {
         perror("Failed to connect socket");
 
     // Read the directory for all the images to rotate
-    DIR *dir = opendir(argv[1]);
+    DIR *dir = opendir(path_to_images);
     struct dirent *entry;
 
     if (dir == NULL) {
