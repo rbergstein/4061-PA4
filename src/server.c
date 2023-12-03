@@ -50,7 +50,7 @@ int main(int argc, char* argv[]) {
         perror("accept from client error");
     }
 
-    // CLIENT HANDLING THREADS PART
+    // CLIENT HANDLING THREADS PART [using clientHandler()?]
 
     // Release any resources
     close(conn_fd);

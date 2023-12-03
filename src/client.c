@@ -33,8 +33,6 @@ int send_file(int socket, const char *filename) {
     while ((bytes_read = fread(pack_buf, 1, sizeof(pack_buf), f)) > 0) {
         if (send(socket, pack_buf, bytes_read, 0) == -1) {
             perror("file data send error");
-            fclose(f);
-            return -1;
         }
     }
 
@@ -44,12 +42,38 @@ int send_file(int socket, const char *filename) {
 
 int receive_file(int socket, const char *filename) {
     // Open the file
-    
+    FILE *f = fopen(filename, "w");
+    if (f == NULL) {
+        perror("can't open file");
+        return -1;
+    }
     // Receive response packet
-
+    packet_t packet;
+    int ret = recv(socket, &packet, sizeof(packet), 0);
+    if (ret == -1) {
+        perror("recieve packet error");
+    }
     // Receive the file data
+    char pack_buf[BUFFER_SIZE];
+    size_t bytes_received;
+    size_t total_bytes_received = 0;
 
-    // Write the data to the file
+    while (packet.size > 0) {
+        bytes_received = recv(socket, pack_buf, sizeof(pack_buf), 0);
+        if (bytes_received == -1) {
+            perror("file data receive error");
+            fclose(f);
+            return -1;
+        }
+
+        // Write the data to the file
+        fwrite(pack_buf, 1, bytes_received, f);
+
+        packet.size -= bytes_received;
+    }
+    
+    fclose(f);
+
     return 0;
 }
 
@@ -86,7 +110,7 @@ int main(int argc, char* argv[]) {
         exit(EXIT_FAILURE);
     }
 
-    request_t reqlist[MAX_QUEUE_LEN];
+    request_t req_queue[MAX_QUEUE_LEN];
     int index_counter = 0;
 
     while ((entry = readdir(dir)) != NULL) { 
@@ -97,13 +121,15 @@ int main(int argc, char* argv[]) {
         const char* file_ext = strrchr(entry->d_name, '.');
         if (file_ext && strcmp(file_ext, ".png") == 0) {
             if (index_counter < BUFFER_SIZE) {
-                reqlist[index_counter].file_name = strdup(entry->d_name); //memory allocation for file_name
-                reqlist[index_counter].rotation_angle = rotation_angle;
+                req_queue[index_counter].file_name = strdup(entry->d_name); //memory allocation for file_name
+                req_queue[index_counter].rotation_angle = rotation_angle;
                 index_counter++;
             }
         }
     }
     // Send the image data to the server
+
+            // while loop while queue != empty, send_file I think?
 
     // Check that the request was acknowledged
 
