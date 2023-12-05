@@ -8,9 +8,14 @@
 void *clientHandler(void *socket) {
 
     // Receive packets from the client
-
+    char recvdata[PACKETSZ];
+    memset(recvdata, 0, PACKETSZ);
+    int ret = recv(conn_fd, recvdata, PACKETSZ, 0); // receive data from client
+    if(ret == -1)
+        perror("recv error");    
+    packet_t *ackpacket = deserializeData(recvdata);
     // Determine the packet operatation and flags
-
+    
     // Receive the image data using the size
 
     // Process the image data based on the set of flags
