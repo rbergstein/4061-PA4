@@ -129,24 +129,40 @@ int main(int argc, char* argv[]) {
     }
     // Send the image data to the server
 
-            // while loop while queue != empty, send_file I think?
-            while (index_counter > 0) {
-                //pop from queue - i think we need to start at the beginning of req_queue, don't know if we should add a for loop for that?
-                ??
-                // send a packet with the IMG_FLAG_ROTATE_XXX message header desired rotation Angle, Image size, and data.  
-                packet_t packet;
-                ??      
-                int ret = send(??);
-                if (ret == -1) {
-                    perror("packet send error");
-                }
-                //receive the response packet containing the processed image from the server
-                ret = recv(??);
-                if (ret == -1) {
-                    perror("recieve packet error");
-                }
-                //save the image to a specified directory (e.g., 'output')
+        // while loop while queue != empty
+        while (index_counter > 0) {
+            //pop from queue 
+            char *f_name = req_queue[index_counter].file_name;
+            index_counter--;
+            // send a packet with the IMG_FLAG_ROTATE_XXX message header desired rotation Angle, Image size, and data.
+            packet_t packet;
+            if (rotation_angle == 180) {
+                packet = (packet_t) {
+                    .operation = htons(IMG_OP_ROTATE),
+                    .flags = htons(IMG_FLAG_ROTATE_180), 
+                    .size = htons(sizeof(f_name)) };
             }
+            else {
+                packet = (packet_t) {
+                    .operation = htons(IMG_OP_ROTATE),
+                    .flags = htons(IMG_FLAG_ROTATE_180), 
+                    .size = htons(sizeof(f_name)) };
+                
+            }    
+            char *serializedData = serializePacket(&packet);
+            int ret = send(sockfd, serializedData, PACKETSZ, 0);
+            if (ret == -1) {
+                perror("packet send error");
+            }
+            //receive the response packet containing the processed image from the server
+            // char recvdata[sizeof(packet)];
+            // memset(recvdata, 0, sizeof(packet));
+            // ret = recv(sockfd, recvdata, sizeof(packet), 0);
+            // if (ret == -1) {
+            //     perror("recieve packet error");
+            // }
+            //save the image to a specified directory (e.g., 'output')
+        }
             
 
     // Check that the request was acknowledged
