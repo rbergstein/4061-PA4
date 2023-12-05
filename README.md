@@ -14,13 +14,13 @@ csel-kh1250-09.cselabs.umn.edu
 
 ## Changes to Makefile
 
-(filler)
+None for inter submission.
 
 ## Individual Contributions: 
 
-Ryan: Created a group github repository to collectively work out of and set up the project files and README document.
+Ryan: Created a group github repository to collectively work out of and set up the project files and README document. Wrote initial code to set up the client side as well as created the server side.
 
-Marwa:  
+Marwa: 
 
 Basma:  
 

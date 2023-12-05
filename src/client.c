@@ -145,12 +145,12 @@ int main(int argc, char* argv[]) {
             else {
                 packet = (packet_t) {
                     .operation = htons(IMG_OP_ROTATE),
-                    .flags = htons(IMG_FLAG_ROTATE_180), 
+                    .flags = htons(IMG_FLAG_ROTATE_270), 
                     .size = htons(sizeof(f_name)) };
                 
             }    
             char *serializedData = serializePacket(&packet);
-            int ret = send(sockfd, serializedData, PACKETSZ, 0);
+            int ret = send(sockfd, serializedData, sizeof(serializedData), 0);
             if (ret == -1) {
                 perror("packet send error");
             }
