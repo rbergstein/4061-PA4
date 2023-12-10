@@ -5,26 +5,57 @@
 #define BUFFER_SIZE 1024 
 
 
-// void *clientHandler(void *socket) {
-//     // Receive packets from the client
-//     char recvdata[PACKETSZ];
-//     memset(recvdata, 0, PACKETSZ);
-//     int ret = recv(&socket, recvdata, PACKETSZ, 0); // receive data from client
-//     if(ret == -1)
-//         perror("recv error");    
-//     packet_t *ackpacket = deserializeData(recvdata);
-//     // Determine the packet operatation and flags
-//     char temp_operation = ackpacket->operation;
-//     char temp_flags = ackpacket->flags;
-//     // Receive the image data using the size
-//     int width;
-//     int height;                            
-//     int bpp; 
-//     uint8_t *image_result = stbi_load(recvdata.file_name, &width, &height, &bpp,  CHANNEL_NUM); 
-//     // Process the image data based on the set of flags
+void *clientHandler(void *socket) {
+    // Receive packets from the client
+    char recvdata[PACKETSZ];
+    memset(recvdata, 0, PACKETSZ);
+    int ret = recv(&socket, recvdata, PACKETSZ, 0); // receive data from client
+    if(ret == -1)
+        perror("recv error");    
+    packet_t *ackpacket = deserializeData(recvdata);
+    // Determine the packet operatation and flags
+    char temp_operation = ackpacket->operation;
+    char temp_flags = ackpacket->flags;
 
-//     // Acknowledge the request and return the processed image data
-// }
+    // Receive the image data using the size
+    int width;
+    int height;                            
+    int bpp; 
+    uint8_t *image_result = stbi_load(recvdata.file_name, &width, &height, &bpp,  CHANNEL_NUM); 
+
+    // Process the image data based on the set of flags
+    uint8_t **result_matrix = (uint8_t **)malloc(sizeof(uint8_t*) * width);
+    uint8_t **img_matrix = (uint8_t **)malloc(sizeof(uint8_t*) * width);
+    for (int i = 0; i < width; i++){
+        result_matrix[i] = (uint8_t *)malloc(sizeof(uint8_t) * height);
+        img_matrix[i] = (uint8_t *)malloc(sizeof(uint8_t) * height);
+    }
+
+    linear_to_image(image_result, img_matrix, width, height);
+
+    if (ackpacket->flags == IMG_FLAG_ROTATE_180) {
+        flip_left_to_right(img_matrix, result_matrix, width, height);
+    }  
+    else {
+        flip_upside_down(img_matrix, result_matrix ,width, height);
+    }  
+
+    uint8_t* img_array = (uint8_t *)malloc(sizeof(uint8_t) * width * height);
+    flatten_mat(result_matrix, img_array, width, height);
+
+    // Acknowledge the request and return the processed image data
+    packet_t packet;
+    packet = (packet_t) {
+            .operation = htons(temp_operation),
+            .flags = htons(temp_flags), 
+            .size = htons(ackpacket->size) };
+            
+    char *serializedData = serializePacket(&packet);
+    ret = send(&socket, serializedData, PACKETSZ, 0); 
+    if(ret == -1)
+        perror("send error");
+
+}
 
 int main(int argc, char* argv[]) {
     int listen_fd, conn_fd;
