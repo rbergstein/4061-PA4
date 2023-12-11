@@ -5,7 +5,7 @@
 
 int send_file(int socket, const char *filename) {
     // Open the file
-    FILE *f = fopen(filename, "r");
+    FILE *f = fopen(filename, "rb");
     if (f == NULL) {
         perror("can't open file");
         return -1;
@@ -19,13 +19,14 @@ int send_file(int socket, const char *filename) {
     packet_t packet;
     // packet.operation = ;         fill this here??
     // packet.flags = ;             not sure.
-    packet.size = file_size;
+    packet.size = htol(file_size + 1);
 
-    int ret = send(socket, &packet, sizeof(packet), 0);
+    int ret = send(socket, &packet, packet.size, 0);
     if (ret == -1) {
         perror("packet send error");
+        fclose(f);
+        return -1;
     }
-    return 0;
     // Send the file data
     char pack_buf[BUFFER_SIZE];
     size_t bytes_read;
@@ -33,11 +34,12 @@ int send_file(int socket, const char *filename) {
     while ((bytes_read = fread(pack_buf, 1, sizeof(pack_buf), f)) > 0) {
         if (send(socket, pack_buf, bytes_read, 0) == -1) {
             perror("file data send error");
+            fclose(f);
+            return -1;
         }
     }
 
     fclose(f);
-    
 }
 
 int receive_file(int socket, const char *filename) {
@@ -129,40 +131,39 @@ int main(int argc, char* argv[]) {
     }
     // Send the image data to the server
 
-        // while loop while queue != empty
-        while (index_counter > 0) {
-            //pop from queue 
-            char *f_name = req_queue[index_counter].file_name;
-            index_counter--;
-            // send a packet with the IMG_FLAG_ROTATE_XXX message header desired rotation Angle, Image size, and data.
-            packet_t packet;
-            if (rotation_angle == 180) {
-                packet = (packet_t) {
-                    .operation = htons(IMG_OP_ROTATE),
-                    .flags = htons(IMG_FLAG_ROTATE_180), 
-                    .size = htons(sizeof(f_name)) };
-            }
-            else {
-                packet = (packet_t) {
-                    .operation = htons(IMG_OP_ROTATE),
-                    .flags = htons(IMG_FLAG_ROTATE_270), 
-                    .size = htons(sizeof(f_name)) };
-                
-            }    
-            char *serializedData = serializePacket(&packet);
-            int ret = send(sockfd, serializedData, sizeof(serializedData), 0);
-            if (ret == -1) {
-                perror("packet send error");
-            }
-            //receive the response packet containing the processed image from the server
-            // char recvdata[sizeof(packet)];
-            // memset(recvdata, 0, sizeof(packet));
-            // ret = recv(sockfd, recvdata, sizeof(packet), 0);
-            // if (ret == -1) {
-            //     perror("recieve packet error");
-            // }
-            //save the image to a specified directory (e.g., 'output')
+    while (index_counter > 0) {
+        //pop from queue
+        index_counter--;
+        char *f_name = req_queue[index_counter].file_name;
+        // send a packet with the IMG_FLAG_ROTATE_XXX message header desired rotation Angle, Image size, and data.
+        packet_t packet;
+        if (rotation_angle == 180) {
+            packet = (packet_t) {
+                .operation = htons(IMG_OP_ROTATE),
+                .flags = htons(IMG_FLAG_ROTATE_180), 
+                .size = htonl(strlen(f_name) + 1) };
         }
+        else {
+            packet = (packet_t) {
+                .operation = htons(IMG_OP_ROTATE),
+                .flags = htons(IMG_FLAG_ROTATE_270), 
+                .size = htonl(strlen(f_name) + 1) };
+            
+        }    
+        char *serializedData = serializePacket(&packet);
+        int ret = send(sockfd, serializedData, sizeof(serializedData), 0);
+        if (ret == -1) {
+            perror("packet send error");
+        }
+        //receive the response packet containing the processed image from the server
+        // char recvdata[sizeof(packet)];
+        // memset(recvdata, 0, sizeof(packet));
+        // ret = recv(sockfd, recvdata, sizeof(packet), 0);
+        // if (ret == -1) {
+        //     perror("recieve packet error");
+        // }
+        //save the image to a specified directory (e.g., 'output')
+    }
             
 
     // Check that the request was acknowledged

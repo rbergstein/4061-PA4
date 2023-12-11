@@ -7,10 +7,10 @@
 
 void *clientHandler(void *socket) {
     // Receive packets from the client
-    char recvdata[PACKETSZ];
-    memset(recvdata, 0, PACKETSZ);
-    int ret = recv(&socket, recvdata, PACKETSZ, 0); // receive data from client
-    if(ret == -1)
+    char recvdata[BUFFER_SIZE];
+    memset(recvdata, 0, BUFFER_SIZE);
+    int ret = recv(&socket, recvdata, BUFFER_SIZE, 0); // receive data from client
+    if (ret == -1)
         perror("recv error");    
     packet_t *ackpacket = deserializeData(recvdata);
     // Determine the packet operatation and flags
@@ -21,7 +21,7 @@ void *clientHandler(void *socket) {
     int width;
     int height;                            
     int bpp; 
-    uint8_t *image_result = stbi_load(recvdata.file_name, &width, &height, &bpp,  CHANNEL_NUM); 
+    uint8_t *image_result = stbi_load(ackpacket->file_name, &width, &height, &bpp,  CHANNEL_NUM); 
 
     // Process the image data based on the set of flags
     uint8_t **result_matrix = (uint8_t **)malloc(sizeof(uint8_t*) * width);
@@ -51,10 +51,17 @@ void *clientHandler(void *socket) {
             .size = htons(ackpacket->size) };
             
     char *serializedData = serializePacket(&packet);
-    ret = send(&socket, serializedData, PACKETSZ, 0); 
-    if(ret == -1)
+    ret = send(socket, serializedData, sizeof(packet), 0); 
+    if (ret == -1)
         perror("send error");
 
+    for (int i = 0; i < width; i++) {
+        free(result_matrix[i]);
+        free(img_matrix[i]);
+    }
+    free(result_matrix);
+    free(img_matrix);
+    free(img_array);
 }
 
 int main(int argc, char* argv[]) {
@@ -84,9 +91,17 @@ int main(int argc, char* argv[]) {
     // Accept connections and create the client handling threads
     struct sockaddr_in clientaddr;
     socklen_t clientaddr_len = sizeof(clientaddr);
-    conn_fd = accept(listen_fd, (struct sockaddr *) &clientaddr, &clientaddr_len);
-    if (conn_fd == -1) {
-        perror("accept from client error");
+
+    while (1) {
+        conn_fd = accept(listen_fd, (struct sockaddr *) &clientaddr, &clientaddr_len);
+        if (conn_fd == -1) {
+            perror("accept from client error");
+        }
+
+        pthread_t thread_id;
+        if (pthread_create(&thread_id, NULL, (void *)clientHandler, &conn_fd) != 0) {
+            perror("cannot create thread");
+        };
     }
 
     // Release any resources
