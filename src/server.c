@@ -18,6 +18,18 @@ void *clientHandler(void *socket) {
     char temp_flags = ackpacket->flags;
 
     // Receive the image data using the size
+    int fd = mkstemp("")  //create temp file - confused on how the path should be formatted cuz it has to have "XXXXXX" at the end i think?
+    if (fd == -1) {
+        perror("temp file error")
+        return -1;
+    }
+    
+    FILE *temp_file = fopen(fd, "rb");
+    if (temp_file == NULL) {
+        perror("can't open file");
+        return -1;
+    }
+
     int width;
     int height;                            
     int bpp; 
