@@ -2,6 +2,7 @@
 
 #define PORT 5872
 #define BUFFER_SIZE 1024 
+char rotation_angle;
 
 int send_file(int socket, const char *filename) {
     // Open the file
@@ -16,17 +17,32 @@ int send_file(int socket, const char *filename) {
     fseek(f, 0, SEEK_SET); // set file pointer back to start
 
     // Set up the request packet for the server and send it
-    packet_t packet;
-    // packet.operation = ;         fill this here??
-    // packet.flags = ;             not sure.
-    packet.size = htol(file_size + 1);
+    // packet_t packet;
+    // // packet.operation = ;         fill this here??
+    // // packet.flags = ;             not sure.
+    // packet.size = htol(file_size + 1);
 
-    int ret = send(socket, &packet, packet.size, 0);
+    packet_t packet;                //moved packet stuff from main to this function
+    if (rotation_angle == 180) {
+        packet = (packet_t) {
+            .operation = IMG_OP_ROTATE,
+            .flags = IMG_FLAG_ROTATE_180, 
+            .size = htons(file_size)};
+    }
+    else {
+        packet = (packet_t) {
+            .operation = IMG_OP_ROTATE,
+            .flags = IMG_FLAG_ROTATE_270, 
+            .size = htons(file_size)};      
+    }    
+    char *serializedData = serializePacket(&packet);
+    int ret = send(socket, serializedData, sizeof(serializedData), 0);
     if (ret == -1) {
         perror("packet send error");
         fclose(f);
         return -1;
     }
+
     // Send the file data
     char pack_buf[BUFFER_SIZE];
     size_t bytes_read;
@@ -86,7 +102,7 @@ int main(int argc, char* argv[]) {
     }
     char* path_to_images = argv[1];
     char* output_dir = argv[2];
-    int rotation_angle = atoi(argv[3]);
+    rotation_angle = atoi(argv[3]);
     
     // Set up socket
     int sockfd = socket(AF_INET, SOCK_STREAM, 0); // create socket to establish connection
@@ -136,25 +152,30 @@ int main(int argc, char* argv[]) {
         index_counter--;
         char *f_name = req_queue[index_counter].file_name;
         // send a packet with the IMG_FLAG_ROTATE_XXX message header desired rotation Angle, Image size, and data.
-        packet_t packet;
-        if (rotation_angle == 180) {
-            packet = (packet_t) {
-                .operation = htons(IMG_OP_ROTATE),
-                .flags = htons(IMG_FLAG_ROTATE_180), 
-                .size = htonl(strlen(f_name) + 1) };
-        }
-        else {
-            packet = (packet_t) {
-                .operation = htons(IMG_OP_ROTATE),
-                .flags = htons(IMG_FLAG_ROTATE_270), 
-                .size = htonl(strlen(f_name) + 1) };
+
+        // packet_t packet;
+        // if (rotation_angle == 180) {
+        //     packet = (packet_t) {
+        //         .operation = IMG_OP_ROTATE,
+        //         .flags = IMG_FLAG_ROTATE_180, 
+        //         .size = htonl(strlen(f_name) + 1) };
+        // }
+        // else {
+        //     packet = (packet_t) {
+        //         .operation = IMG_OP_ROTATE,
+        //         .flags = IMG_FLAG_ROTATE_270, 
+        //         .size = htonl(strlen(f_name) + 1) };
             
-        }    
-        char *serializedData = serializePacket(&packet);
-        int ret = send(sockfd, serializedData, sizeof(serializedData), 0);
-        if (ret == -1) {
-            perror("packet send error");
-        }
+        // }    
+        // char *serializedData = serializePacket(&packet);
+        // int ret = send(sockfd, serializedData, sizeof(serializedData), 0);
+        // if (ret == -1) {
+        //     perror("packet send error");
+        // }
+
+        //call send_file
+        send_file(sockfd, f_name);
+
         //receive the response packet containing the processed image from the server
         // char recvdata[sizeof(packet)];
         // memset(recvdata, 0, sizeof(packet));
