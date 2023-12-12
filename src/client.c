@@ -16,12 +16,6 @@ int send_file(int socket, const char *filename) {
     int file_size = ftell(f); // get size of file
     fseek(f, 0, SEEK_SET); // set file pointer back to start
 
-    // Set up the request packet for the server and send it
-    // packet_t packet;
-    // // packet.operation = ;         fill this here??
-    // // packet.flags = ;             not sure.
-    // packet.size = htol(file_size + 1);
-
     packet_t packet;                //moved packet stuff from main to this function
     if (rotation_angle == 180) {
         packet = (packet_t) {
@@ -36,7 +30,7 @@ int send_file(int socket, const char *filename) {
             .size = htons(file_size)};      
     }    
     char *serializedData = serializePacket(&packet);
-    int ret = send(socket, serializedData, sizeof(serializedData), 0);
+    int ret = send(socket, serializedData, packet.size, 0);
     if (ret == -1) {
         perror("packet send error");
         fclose(f);
@@ -56,11 +50,12 @@ int send_file(int socket, const char *filename) {
     }
 
     fclose(f);
+    free(serializedData);
 }
 
 int receive_file(int socket, const char *filename) {
     // Open the file
-    FILE *f = fopen(filename, "w");
+    FILE *f = fopen(filename, "wb");
     if (f == NULL) {
         perror("can't open file");
         return -1;
@@ -74,7 +69,6 @@ int receive_file(int socket, const char *filename) {
     // Receive the file data
     char pack_buf[BUFFER_SIZE];
     size_t bytes_received;
-    size_t total_bytes_received = 0;
 
     while (packet.size > 0) {
         bytes_received = recv(socket, pack_buf, sizeof(pack_buf), 0);
@@ -106,8 +100,10 @@ int main(int argc, char* argv[]) {
     
     // Set up socket
     int sockfd = socket(AF_INET, SOCK_STREAM, 0); // create socket to establish connection
-    if(sockfd == -1)
+    if(sockfd == -1) {
         perror("Failed to set up socket");
+        exit(EXIT_FAILURE);
+    }
 
     struct sockaddr_in servaddr;
     servaddr.sin_family = AF_INET; // IPv4
@@ -151,48 +147,29 @@ int main(int argc, char* argv[]) {
         //pop from queue
         index_counter--;
         char *f_name = req_queue[index_counter].file_name;
-        // send a packet with the IMG_FLAG_ROTATE_XXX message header desired rotation Angle, Image size, and data.
-
-        // packet_t packet;
-        // if (rotation_angle == 180) {
-        //     packet = (packet_t) {
-        //         .operation = IMG_OP_ROTATE,
-        //         .flags = IMG_FLAG_ROTATE_180, 
-        //         .size = htonl(strlen(f_name) + 1) };
-        // }
-        // else {
-        //     packet = (packet_t) {
-        //         .operation = IMG_OP_ROTATE,
-        //         .flags = IMG_FLAG_ROTATE_270, 
-        //         .size = htonl(strlen(f_name) + 1) };
-            
-        // }    
-        // char *serializedData = serializePacket(&packet);
-        // int ret = send(sockfd, serializedData, sizeof(serializedData), 0);
-        // if (ret == -1) {
-        //     perror("packet send error");
-        // }
-
-        //call send_file
+        // Send a packet with the IMG_FLAG_ROTATE_XXX message header desired rotation Angle, Image size, and data.
         send_file(sockfd, f_name);
 
-        //receive the response packet containing the processed image from the server
-        // char recvdata[sizeof(packet)];
-        // memset(recvdata, 0, sizeof(packet));
-        // ret = recv(sockfd, recvdata, sizeof(packet), 0);
-        // if (ret == -1) {
-        //     perror("recieve packet error");
-        // }
-        //save the image to a specified directory (e.g., 'output')
+        // Receive the processed image and write it to output_dir
+        receive_file(sockfd, output_dir);
+
+        free(req_queue[index_counter].file_name);
     }
-            
 
-    // Check that the request was acknowledged
+    // Terminate the connection once all images have been processed (Send ‘terminate’ message through socket)
+    packet_t terminate_packet = {
+    .operation = IMG_OP_EXIT,
+    .size = 0
+    };
 
-    // Receive the processed image and save it in the output dir
-
-    // Terminate the connection once all images have been processed
-
-    // Release any resources
+    char *serializedTerminate = serializePacket(&terminate_packet);
+    int ret = send(sockfd, serializedTerminate, terminate_packet.size, 0);
+    if (ret == -1) {
+        perror("packet send error");
+    }
+    free(serializedTerminate);
+    // Release any resources (Close to connection)    
+    close(sockfd);
+    
     return 0;
 }
