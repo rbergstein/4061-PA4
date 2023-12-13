@@ -36,7 +36,7 @@ void *clientHandler(void *socket) {
             perror("recv error");
 
         char fname[10] = "tempXXXXXX.png";
-        int temp_file = mkstemp(fname);  //create temp file 
+        int temp_file = mkstemp(fname);  //create and open temp file 
         if (temp_file == -1) {
             perror("temp file error");
             //return -1;
@@ -53,7 +53,7 @@ void *clientHandler(void *socket) {
         if (write(temp_file, img_data, size) == -1) {
             perror("write to temp file error");
         }
-        //close(temp_file);
+        close(temp_file);
 
         int width;
         int height;                            
@@ -93,20 +93,20 @@ void *clientHandler(void *socket) {
             perror("send error");
 
         //read file back into buffer and send
-        //FILE *tf = fopen(temp_file, "rb");
+        FILE *tf = open(temp_file, "rb");
 
         char pack_buf[size];
         memset(pack_buf, 0, size);
         size_t bytes_read;
 
-        while ((bytes_read = read(pack_buf, temp_file, sizeof(pack_buf))) > 0) {
+        while ((bytes_read = read(pack_buf, tf, sizeof(pack_buf))) > 0) {
             if (send(sock_fd, pack_buf, bytes_read, 0) == -1) {
                 perror("file data send error");
-                close(temp_file);
+                close(tf);
                 return -1;
             }
         }
-        close(temp_file);
+        close(tf);
 
         //free
         for (int i = 0; i < width; i++) {
