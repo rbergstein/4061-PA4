@@ -53,7 +53,7 @@ void *clientHandler(void *socket) {
         if (write(temp_file, img_data, size) == -1) {
             perror("write to temp file error");
         }
-        close(temp_file);
+        //close(temp_file);
 
         int width;
         int height;                            
@@ -93,20 +93,20 @@ void *clientHandler(void *socket) {
             perror("send error");
 
         //read file back into buffer and send
-        FILE *tf = fopen(temp_file, "rb");
+        //FILE *tf = fopen(temp_file, "rb");
 
         char pack_buf[size];
         memset(pack_buf, 0, size);
         size_t bytes_read;
 
-        while ((bytes_read = fread(pack_buf, 1, sizeof(pack_buf), tf)) > 0) {
+        while ((bytes_read = read(pack_buf, temp_file, sizeof(pack_buf))) > 0) {
             if (send(sock_fd, pack_buf, bytes_read, 0) == -1) {
                 perror("file data send error");
-                fclose(tf);
+                close(temp_file);
                 return -1;
             }
         }
-        fclose(tf);
+        close(temp_file);
 
         //free
         for (int i = 0; i < width; i++) {
