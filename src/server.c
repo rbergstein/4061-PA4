@@ -30,27 +30,30 @@ void *clientHandler(void *socket) {
         }
 
         // Receive the image data using the size
-        char fsize[size];
-        ret = recv(sock_fd, fsize, size, 0); 
+        char img_data[size];
+        ret = recv(sock_fd, img_data, size, 0); 
         if (ret == -1)
             perror("recv error");
 
         char fname[10] = "tempXXXXXX.png";
-        int fd = mkstemp(fname);  //create temp file 
-        if (fd == -1) {
+        int temp_file = mkstemp(fname);  //create temp file 
+        if (temp_file == -1) {
             perror("temp file error");
             //return -1;
         }
         
-        FILE *temp_file = fopen(fd, "w");
-        if (temp_file == NULL) {
-            perror("can't open file");
-            //return -1;
-        }
+        // FILE *temp_file = fopen(fd, "w");
+        // if (temp_file == NULL) {
+        //     perror("can't open file");
+        //     //return -1;
+        // }
 
         //write file data to temp file
-        fwrite(temp_file, 1, size, fsize);
-        fclose(temp_file);
+        //fwrite(temp_file, 1, size, fsize);
+        if (write(temp_file, img_data, size) == -1) {
+            perror("write to temp file error");
+        }
+        close(temp_file);
 
         int width;
         int height;                            
@@ -85,7 +88,7 @@ void *clientHandler(void *socket) {
                 .size = htonl(size) };
                 
         char *serializedData = serializePacket(&packet);
-        ret = send(socket, serializedData, sizeof(packet), 0); 
+        ret = send(sock_fd, serializedData, sizeof(packet), 0); 
         if (ret == -1)
             perror("send error");
 
@@ -97,7 +100,7 @@ void *clientHandler(void *socket) {
         size_t bytes_read;
 
         while ((bytes_read = fread(pack_buf, 1, sizeof(pack_buf), tf)) > 0) {
-            if (send(socket, pack_buf, bytes_read, 0) == -1) {
+            if (send(sock_fd, pack_buf, bytes_read, 0) == -1) {
                 perror("file data send error");
                 fclose(tf);
                 return -1;
