@@ -1,6 +1,6 @@
 #include "server.h"
 
-#define PORT 5872
+#define PORT 6872
 #define MAX_CLIENTS 5
 #define BUFFER_SIZE 1024 
 
@@ -22,9 +22,9 @@ void *clientHandler(void *socket) {
         char temp_flags = ackpacket->flags;
         int size = ntohl(ackpacket->size);
 
-        if (temp_operation == IMG_OP_ACK) {
-            continue;
-        } 
+        // if (temp_operation == IMG_OP_ACK) {
+        //     continue;
+        // } 
         if (temp_operation == IMG_OP_EXIT) {
             break;
         }
