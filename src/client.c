@@ -1,6 +1,6 @@
 #include "client.h"
 
-#define PORT 5872
+#define PORT 6872
 #define BUFFER_SIZE 1024 
 char rotation_angle;
 
@@ -68,7 +68,7 @@ int receive_file(int socket, const char *filename) {
     packet_t packet;
     int ret = recv(socket, &packet, sizeof(packet), 0);
     if (ret == -1) {
-        perror("recieve packet error");
+        perror("receive packet error");
     }
     // Receive the file data
     char pack_buf[BUFFER_SIZE];
@@ -153,11 +153,15 @@ int main(int argc, char* argv[]) {
         index_counter--;
         char *f_name = req_queue[index_counter].file_name;
         // Send a packet with the IMG_FLAG_ROTATE_XXX message header desired rotation Angle, Image size, and data.
-        //printf("%s\n", f_name);
-        send_file(sockfd, f_name);
+        
+        char *f_path[BUFFER_SIZE];
+        sprintf(f_path, "%s/%s", path_to_images, f_name);
+        send_file(sockfd, f_path);
 
         // Receive the processed image and write it to output_dir
-        receive_file(sockfd, output_dir);
+        char *out_path[BUFFER_SIZE];
+        sprintf(out_path, "%s/%s", output_dir, f_name);
+        receive_file(sockfd, out_path);
 
         free(req_queue[index_counter].file_name);
     }
