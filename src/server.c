@@ -7,12 +7,12 @@
 
 void *clientHandler(void *socket) {
     // Receive packets from the client
-    //int socket = *((int *)socket);
+    int sock_fd = *((int *)socket);
     printf("--in clientHandler--\n");
     while(1) {
         char recvdata[PACKETSZ];
         memset(recvdata, 0, PACKETSZ);
-        int ret = recv(socket, recvdata, PACKETSZ, 0); // receive data from client
+        int ret = recv(sock_fd, recvdata, PACKETSZ, 0); // receive data from client
         if (ret == -1)
             perror("recv error");    
         packet_t *ackpacket = deserializeData(recvdata);
@@ -31,7 +31,7 @@ void *clientHandler(void *socket) {
 
         // Receive the image data using the size
         char fsize[size];
-        ret = recv(socket, fsize, size, 0); 
+        ret = recv(sock_fd, fsize, size, 0); 
         if (ret == -1)
             perror("recv error");
 
