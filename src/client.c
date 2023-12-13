@@ -5,6 +5,8 @@
 char rotation_angle;
 
 int send_file(int socket, const char *filename) {
+    printf("--in send_file func--\n");
+    printf("--file name: %s--\n", filename);
     // Open the file
     FILE *f = fopen(filename, "rb");
     if (f == NULL) {
@@ -21,13 +23,13 @@ int send_file(int socket, const char *filename) {
         packet = (packet_t) {
             .operation = IMG_OP_ROTATE,
             .flags = IMG_FLAG_ROTATE_180, 
-            .size = htons(file_size)};
+            .size = htonl(file_size)};
     }
     else {
         packet = (packet_t) {
             .operation = IMG_OP_ROTATE,
             .flags = IMG_FLAG_ROTATE_270, 
-            .size = htons(file_size)};      
+            .size = htonl(file_size)};      
     }    
     char *serializedData = serializePacket(&packet);
     int ret = send(socket, serializedData, packet.size, 0);
@@ -39,6 +41,7 @@ int send_file(int socket, const char *filename) {
 
     // Send the file data
     char pack_buf[BUFFER_SIZE];
+    memset(pack_buf, 0, BUFFER_SIZE);
     size_t bytes_read;
 
     while ((bytes_read = fread(pack_buf, 1, sizeof(pack_buf), f)) > 0) {
@@ -54,6 +57,7 @@ int send_file(int socket, const char *filename) {
 }
 
 int receive_file(int socket, const char *filename) {
+    printf("--in receive_file func--\n");
     // Open the file
     FILE *f = fopen(filename, "wb");
     if (f == NULL) {
@@ -68,6 +72,7 @@ int receive_file(int socket, const char *filename) {
     }
     // Receive the file data
     char pack_buf[BUFFER_SIZE];
+    memset(pack_buf, 0, BUFFER_SIZE);
     size_t bytes_received;
 
     while (packet.size > 0) {
@@ -148,6 +153,7 @@ int main(int argc, char* argv[]) {
         index_counter--;
         char *f_name = req_queue[index_counter].file_name;
         // Send a packet with the IMG_FLAG_ROTATE_XXX message header desired rotation Angle, Image size, and data.
+        //printf("%s\n", f_name);
         send_file(sockfd, f_name);
 
         // Receive the processed image and write it to output_dir
@@ -158,18 +164,18 @@ int main(int argc, char* argv[]) {
 
     // Terminate the connection once all images have been processed (Send ‘terminate’ message through socket)
     packet_t terminate_packet = {
-    .operation = IMG_OP_EXIT,
-    .size = 0
+                .operation = IMG_OP_EXIT,
+                .size = 0
     };
 
     char *serializedTerminate = serializePacket(&terminate_packet);
-    int ret = send(sockfd, serializedTerminate, terminate_packet.size, 0);
+    ret = send(sockfd, serializedTerminate, terminate_packet.size, 0);
     if (ret == -1) {
         perror("packet send error");
     }
     free(serializedTerminate);
     // Release any resources (Close to connection)    
     close(sockfd);
-    
+    fprintf(stdout, "Client exiting...\n");
     return 0;
 }
