@@ -7,73 +7,115 @@
 
 void *clientHandler(void *socket) {
     // Receive packets from the client
-    char recvdata[BUFFER_SIZE];
-    memset(recvdata, 0, BUFFER_SIZE);
-    int ret = recv(&socket, recvdata, BUFFER_SIZE, 0); // receive data from client
-    if (ret == -1)
-        perror("recv error");    
-    packet_t *ackpacket = deserializeData(recvdata);
-    // Determine the packet operatation and flags
-    char temp_operation = ackpacket->operation;
-    char temp_flags = ackpacket->flags;
+    //int socket = *((int *)socket);
+    printf("--in clientHandler--\n");
+    while(1) {
+        char recvdata[PACKETSZ];
+        memset(recvdata, 0, PACKETSZ);
+        int ret = recv(socket, recvdata, PACKETSZ, 0); // receive data from client
+        if (ret == -1)
+            perror("recv error");    
+        packet_t *ackpacket = deserializeData(recvdata);
 
-    // Receive the image data using the size
-    int fd = mkstemp("")  //create temp file - confused on how the path should be formatted cuz it has to have "XXXXXX" at the end i think?
-    if (fd == -1) {
-        perror("temp file error")
-        return -1;
+        // Determine the packet operatation and flags
+        char temp_operation = ackpacket->operation;
+        char temp_flags = ackpacket->flags;
+        int size = ntohl(ackpacket->size);
+
+        if (temp_operation == IMG_OP_ACK) {
+            continue;
+        } 
+        if (temp_operation == IMG_OP_EXIT) {
+            break;
+        }
+
+        // Receive the image data using the size
+        char fsize[size];
+        ret = recv(socket, fsize, size, 0); 
+        if (ret == -1)
+            perror("recv error");
+
+        char fname[10] = "tempXXXXXX.png";
+        int fd = mkstemp(fname);  //create temp file 
+        if (fd == -1) {
+            perror("temp file error");
+            //return -1;
+        }
+        
+        FILE *temp_file = fopen(fd, "w");
+        if (temp_file == NULL) {
+            perror("can't open file");
+            //return -1;
+        }
+
+        //write file data to temp file
+        fwrite(temp_file, 1, size, fsize);
+        fclose(temp_file);
+
+        int width;
+        int height;                            
+        int bpp; 
+        uint8_t *image_result = stbi_load(temp_file, &width, &height, &bpp,  CHANNEL_NUM); 
+
+        // Process the image data based on the set of flags
+        uint8_t **result_matrix = (uint8_t **)malloc(sizeof(uint8_t*) * width);
+        uint8_t **img_matrix = (uint8_t **)malloc(sizeof(uint8_t*) * width);
+        for (int i = 0; i < width; i++){
+            result_matrix[i] = (uint8_t *)malloc(sizeof(uint8_t) * height);
+            img_matrix[i] = (uint8_t *)malloc(sizeof(uint8_t) * height);
+        }
+
+        linear_to_image(image_result, img_matrix, width, height);
+
+        if (ackpacket->flags == IMG_FLAG_ROTATE_180) {
+            flip_left_to_right(img_matrix, result_matrix, width, height);
+        }  
+        else {
+            flip_upside_down(img_matrix, result_matrix ,width, height);
+        }  
+
+        uint8_t* img_array = (uint8_t *)malloc(sizeof(uint8_t) * width * height);
+        flatten_mat(result_matrix, img_array, width, height);
+
+        // Acknowledge the request and return the processed image data
+        packet_t packet;
+        packet = (packet_t) {
+                .operation = IMG_OP_ACK,
+                .flags = temp_flags, 
+                .size = htonl(size) };
+                
+        char *serializedData = serializePacket(&packet);
+        ret = send(socket, serializedData, sizeof(packet), 0); 
+        if (ret == -1)
+            perror("send error");
+
+        //read file back into buffer and send
+        FILE *tf = fopen(temp_file, "rb");
+
+        char pack_buf[size];
+        memset(pack_buf, 0, size);
+        size_t bytes_read;
+
+        while ((bytes_read = fread(pack_buf, 1, sizeof(pack_buf), tf)) > 0) {
+            if (send(socket, pack_buf, bytes_read, 0) == -1) {
+                perror("file data send error");
+                fclose(tf);
+                return -1;
+            }
+        }
+        fclose(tf);
+
+        //free
+        for (int i = 0; i < width; i++) {
+            free(result_matrix[i]);
+            free(img_matrix[i]);
+        }
+
+        free(result_matrix);
+        free(img_matrix);
+        free(img_array);
+        free(serializedData);
     }
-    
-    FILE *temp_file = fopen(fd, "rb");
-    if (temp_file == NULL) {
-        perror("can't open file");
-        return -1;
-    }
-
-    int width;
-    int height;                            
-    int bpp; 
-    uint8_t *image_result = stbi_load(ackpacket->file_name, &width, &height, &bpp,  CHANNEL_NUM); 
-
-    // Process the image data based on the set of flags
-    uint8_t **result_matrix = (uint8_t **)malloc(sizeof(uint8_t*) * width);
-    uint8_t **img_matrix = (uint8_t **)malloc(sizeof(uint8_t*) * width);
-    for (int i = 0; i < width; i++){
-        result_matrix[i] = (uint8_t *)malloc(sizeof(uint8_t) * height);
-        img_matrix[i] = (uint8_t *)malloc(sizeof(uint8_t) * height);
-    }
-
-    linear_to_image(image_result, img_matrix, width, height);
-
-    if (ackpacket->flags == IMG_FLAG_ROTATE_180) {
-        flip_left_to_right(img_matrix, result_matrix, width, height);
-    }  
-    else {
-        flip_upside_down(img_matrix, result_matrix ,width, height);
-    }  
-
-    uint8_t* img_array = (uint8_t *)malloc(sizeof(uint8_t) * width * height);
-    flatten_mat(result_matrix, img_array, width, height);
-
-    // Acknowledge the request and return the processed image data
-    packet_t packet;
-    packet = (packet_t) {
-            .operation = htons(temp_operation),
-            .flags = htons(temp_flags), 
-            .size = htons(ackpacket->size) };
-            
-    char *serializedData = serializePacket(&packet);
-    ret = send(socket, serializedData, sizeof(packet), 0); 
-    if (ret == -1)
-        perror("send error");
-
-    for (int i = 0; i < width; i++) {
-        free(result_matrix[i]);
-        free(img_matrix[i]);
-    }
-    free(result_matrix);
-    free(img_matrix);
-    free(img_array);
 }
 
 int main(int argc, char* argv[]) {
@@ -116,8 +158,9 @@ int main(int argc, char* argv[]) {
         };
     }
 
-    // Release any resources
+    // Release any resources 
     close(conn_fd);
     close(listen_fd);
+    fprintf(stdout, "Server exiting...\n");
     return 0;
 }
