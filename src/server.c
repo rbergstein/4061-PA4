@@ -37,6 +37,7 @@ void *clientHandler(void *socket) {
 
         char fname[100] = "tempXXXXXX.png";
         int temp_file = mkstemp(fname);  //create and open temp file 
+        printf("%d", temp_file);
         if (temp_file == -1) {
             perror("temp file error");
             //return -1;
@@ -82,6 +83,7 @@ void *clientHandler(void *socket) {
         
         char fname2[100] = "tempXXXXXX.png";
         int temp_file_rotated = mkstemp(fname2);  //create and open 2nd temp file 
+        printf("%d", temp_file_rotated);
         if (temp_file_rotated == -1) {
             perror("temp file error");
             //return -1;
