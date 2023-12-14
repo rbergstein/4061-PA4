@@ -88,20 +88,24 @@ void *clientHandler(void *socket) {
         }
         
         stbi_write_png(temp_file_rotated, width, height, CHANNEL_NUM, img_array, width*CHANNEL_NUM);
-        // Acknowledge the request and return the processed image data
+
+        //read file back into buffer and send
+        FILE *tf = open(temp_file_rotated, "rb");
+        fseek(f, 0, SEEK_END); // set file pointer to end of file
+        int file_size = ftell(f); // get size of file
+        fseek(f, 0, SEEK_SET); // set file pointer back to start
+        
+         // Acknowledge the request and return the processed image data
         packet_t packet;
         packet = (packet_t) {
                 .operation = IMG_OP_ACK,
                 .flags = temp_flags, 
-                .size = htonl(size) };
+                .size = htonl(file_size) };
                 
         char *serializedData = serializePacket(&packet);
         ret = send(sock_fd, serializedData, sizeof(packet), 0); 
         if (ret == -1)
             perror("send error");
-
-        //read file back into buffer and send
-        FILE *tf = open(temp_file_rotated, "rb");
 
         char pack_buf[size];
         memset(pack_buf, 0, size);
