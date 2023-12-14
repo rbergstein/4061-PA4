@@ -86,8 +86,9 @@ void *clientHandler(void *socket) {
             perror("temp file error");
             //return -1;
         }
-        
-        stbi_write_png(temp_file_rotated, width, height, CHANNEL_NUM, img_array, width*CHANNEL_NUM);
+        char f_buf[BUFFER_SIZE];
+        sprintf(f_buf, "%d", temp_file_rotated);
+        stbi_write_png(f_buf, width, height, CHANNEL_NUM, img_array, width*CHANNEL_NUM);
 
         //read file back into buffer and send
         //FILE *tf = open(temp_file_rotated, "rb");
