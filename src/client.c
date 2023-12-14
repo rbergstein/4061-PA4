@@ -40,8 +40,8 @@ int send_file(int socket, const char *filename) {
     }
 
     // Send the file data
-    char pack_buf[BUFFER_SIZE];
-    memset(pack_buf, 0, BUFFER_SIZE);
+    char pack_buf[PACKETSZ];
+    memset(pack_buf, 0, PACKETSZ);
     size_t bytes_read;
 
     while (bytes_read < packet.size) {
@@ -73,8 +73,8 @@ int receive_file(int socket, const char *filename) {
         perror("receive packet error");
     }
     // Receive the file data
-    char pack_buf[BUFFER_SIZE];
-    memset(pack_buf, 0, BUFFER_SIZE);
+    char pack_buf[PACKETSZ];
+    memset(pack_buf, 0, PACKETSZ);
     size_t bytes_received;
 
     while (packet.size > 0) {
@@ -145,7 +145,7 @@ int main(int argc, char* argv[]) {
 
         const char* file_ext = strrchr(entry->d_name, '.');
         if (file_ext && strcmp(file_ext, ".png") == 0) {
-            if (index_counter < BUFFER_SIZE) {
+            if (index_counter < MAX_QUEUE_LEN) {
                 req_queue[index_counter].file_name = strdup(entry->d_name); //memory allocation for file_name
                 req_queue[index_counter].rotation_angle = rotation_angle;
                 index_counter++;
