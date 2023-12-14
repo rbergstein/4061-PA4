@@ -90,10 +90,10 @@ void *clientHandler(void *socket) {
         stbi_write_png(temp_file_rotated, width, height, CHANNEL_NUM, img_array, width*CHANNEL_NUM);
 
         //read file back into buffer and send
-        FILE *tf = open(temp_file_rotated, "rb");
-        fseek(f, 0, SEEK_END); // set file pointer to end of file
+        //FILE *tf = open(temp_file_rotated, "rb");
+        fseek(temp_file_rotated, 0, SEEK_END); // set file pointer to end of file
         int file_size = ftell(f); // get size of file
-        fseek(f, 0, SEEK_SET); // set file pointer back to start
+        fseek(temp_file_rotated, 0, SEEK_SET); // set file pointer back to start
         
          // Acknowledge the request and return the processed image data
         packet_t packet;
@@ -118,7 +118,7 @@ void *clientHandler(void *socket) {
                 return -1;
             }
         }
-        close(tf);
+        close(temp_file_rotated);
 
         //free
         for (int i = 0; i < width; i++) {
