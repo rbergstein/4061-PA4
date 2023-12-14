@@ -91,9 +91,9 @@ void *clientHandler(void *socket) {
 
         //read file back into buffer and send
         //FILE *tf = open(temp_file_rotated, "rb");
-        fseek(temp_file_rotated, 0, SEEK_END); // set file pointer to end of file
+        lseek(temp_file_rotated, 0, SEEK_END); // set file pointer to end of file
         int file_size = ftell(temp_file_rotated); // get size of file
-        fseek(temp_file_rotated, 0, SEEK_SET); // set file pointer back to start
+        lseek(temp_file_rotated, 0, SEEK_SET); // set file pointer back to start
         
          // Acknowledge the request and return the processed image data
         packet_t packet;
