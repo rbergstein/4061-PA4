@@ -44,12 +44,14 @@ int send_file(int socket, const char *filename) {
     memset(pack_buf, 0, BUFFER_SIZE);
     size_t bytes_read;
 
-    while ((bytes_read = fread(pack_buf, 1, sizeof(pack_buf), f)) > 0) {
-        if (send(socket, pack_buf, bytes_read, 0) == -1) {
+    while (bytes_read < packet.size) {
+        ret = send(socket, pack_buf + bytes_read, packet.size - bytes_read, 0);
+        if (ret == -1) {
             perror("file data send error");
             fclose(f);
             return -1;
         }
+        bytes_read += ret;
     }
 
     fclose(f);
@@ -77,6 +79,10 @@ int receive_file(int socket, const char *filename) {
 
     while (packet.size > 0) {
         bytes_received = recv(socket, pack_buf, sizeof(pack_buf), 0);
+        if (bytes_received == 0) {
+            fclose(f);
+            return -1;
+        }
         if (bytes_received == -1) {
             perror("file data receive error");
             fclose(f);
