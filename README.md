@@ -22,7 +22,7 @@ Ryan: Created a group github repository to collectively work out of and set up t
 
 Marwa: Wrote the code to set up and connect socket in client.c as well as directory traversal/adding content to request queue. Also wrote code for sending image data to server. Wrote a lot of the code in the clientHandler function and helped debug server and client. 
 
-Basma: Wrote down the plan on constructing the client handling thread and sending the package according to the protocol.
+Basma: Wrote down the plan on constructing the client handling thread and sending the package according to the protocol. Attended office hours to seek last minute guidance and seek advice from other team members.
 
 ##  How you designed your program for Package sending and processing
 
