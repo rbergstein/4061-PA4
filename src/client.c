@@ -76,8 +76,9 @@ int receive_file(int socket, const char *filename) {
     char pack_buf[PACKETSZ];
     memset(pack_buf, 0, PACKETSZ);
     size_t bytes_received;
+    int temp_size = packet.size;
 
-    while (packet.size > 0) {
+    while (temp_size > 0) {
         bytes_received = recv(socket, pack_buf, sizeof(pack_buf), 0);
         if (bytes_received == 0) {
             fclose(f);
@@ -92,7 +93,7 @@ int receive_file(int socket, const char *filename) {
         // Write the data to the file
         fwrite(pack_buf, 1, bytes_received, f);
 
-        packet.size -= bytes_received;
+        temp_size -= bytes_received;
     }
     
     fclose(f);

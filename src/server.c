@@ -35,7 +35,7 @@ void *clientHandler(void *socket) {
         if (ret == -1)
             perror("recv error");
 
-        char fname[10] = "tempXXXXXX.png";
+        char fname[100] = "tempXXXXXX.png";
         int temp_file = mkstemp(fname);  //create and open temp file 
         if (temp_file == -1) {
             perror("temp file error");
@@ -80,7 +80,7 @@ void *clientHandler(void *socket) {
         uint8_t* img_array = (uint8_t *)malloc(sizeof(uint8_t) * width * height);
         flatten_mat(result_matrix, img_array, width, height);
         
-        char fname2[10] = "tempXXXXXX.png";
+        char fname2[100] = "tempXXXXXX.png";
         int temp_file_rotated = mkstemp(fname2);  //create and open 2nd temp file 
         if (temp_file_rotated == -1) {
             perror("temp file error");
@@ -92,7 +92,7 @@ void *clientHandler(void *socket) {
         //read file back into buffer and send
         //FILE *tf = open(temp_file_rotated, "rb");
         fseek(temp_file_rotated, 0, SEEK_END); // set file pointer to end of file
-        int file_size = ftell(f); // get size of file
+        int file_size = ftell(temp_file_rotated); // get size of file
         fseek(temp_file_rotated, 0, SEEK_SET); // set file pointer back to start
         
          // Acknowledge the request and return the processed image data
@@ -110,14 +110,23 @@ void *clientHandler(void *socket) {
         char pack_buf[size];
         memset(pack_buf, 0, size);
         size_t bytes_read;
+        int temp_size = packet.size;
 
-        while ((bytes_read = read(pack_buf, tf, sizeof(pack_buf))) > 0) {
+        while (temp_size > 0) {
+
+            bytes_read = read(pack_buf, temp_file_rotated, sizeof(pack_buf));
+            if (bytes_read == -1) {
+                perror("server byte read error");
+                close(temp_file_rotated);
+                return -1;
+            }
             if (send(sock_fd, pack_buf, bytes_read, 0) == -1) {
-                perror("file data send error");
-                close(tf);
+                perror("server data send error");
+                close(temp_file_rotated);
                 return -1;
             }
         }
+
         close(temp_file_rotated);
 
         //free
