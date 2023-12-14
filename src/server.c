@@ -79,7 +79,15 @@ void *clientHandler(void *socket) {
 
         uint8_t* img_array = (uint8_t *)malloc(sizeof(uint8_t) * width * height);
         flatten_mat(result_matrix, img_array, width, height);
-
+        
+        char fname2[10] = "tempXXXXXX.png";
+        int temp_file_rotated = mkstemp(fname2);  //create and open 2nd temp file 
+        if (temp_file_rotated == -1) {
+            perror("temp file error");
+            //return -1;
+        }
+        
+        stbi_write_png(temp_file_rotated, width, height, CHANNEL_NUM, img_array, width*CHANNEL_NUM);
         // Acknowledge the request and return the processed image data
         packet_t packet;
         packet = (packet_t) {
@@ -93,7 +101,7 @@ void *clientHandler(void *socket) {
             perror("send error");
 
         //read file back into buffer and send
-        FILE *tf = open(temp_file, "rb");
+        FILE *tf = open(temp_file_rotated, "rb");
 
         char pack_buf[size];
         memset(pack_buf, 0, size);
