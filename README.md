@@ -24,7 +24,7 @@ Marwa: Wrote the code to set up and connect socket in client.c as well as direct
 
 Basma: Wrote down the plan on constructing the client handling thread and sending the package according to the protocol. Attended office hours to seek last minute guidance and seek advice from other team members.
 
-##  How your program for Package sending and processing was designed:
+##  How your program for package sending and processing was designed:
 
 Constructing the Client Handling Thread:
 1. Listening for Connections: The server listens for incoming client connections.
