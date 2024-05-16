@@ -1,4 +1,4 @@
-# 4061-PA4
+# PA4-Client/Server Image Processing
 
 ## PA Group 98 members
 
@@ -18,13 +18,13 @@ Added to the clean section to remove temp* files.
 
 ## Individual Contributions: 
 
-Ryan: Created a group github repository to collectively work out of and set up the project files and README document. Wrote initial code to set up the client side as well as created the server side and made small correction to Makefile. Wrote initial send and receive file function in client and helped develop them accordingly. Also helped a small amount in developing the clientHandler function in server.
+Ryan: Created a group github repository to collectively work out of and set up the project files and README document. Wrote initial code to set up the client side as well as created the server side and made small correction to Makefile. Wrote initial send and receive file function in client and helped develop them accordingly. Also helped to develop the clientHandler function in the server.
 
-Marwa: Wrote the code to set up and connect socket in client.c as well as directory traversal/adding content to request queue. Also wrote code for sending image data to server. Wrote a lot of the code in the clientHandler function and helped debug server and client. 
+Marwa: Wrote the code to set up and connect socket in client.c as well as directory traversal/adding content to request queue. Also wrote code for sending image data to server. Developed the clientHandler function and helped debug server and client. 
 
 Basma: Wrote down the plan on constructing the client handling thread and sending the package according to the protocol. Attended office hours to seek last minute guidance and seek advice from other team members.
 
-##  How you designed your program for Package sending and processing
+##  How your program for Package sending and processing was designed:
 
 Constructing the Client Handling Thread:
 1. Listening for Connections: The server listens for incoming client connections.
